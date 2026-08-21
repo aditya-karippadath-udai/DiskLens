@@ -1,0 +1,6 @@
+{
+  "name": "DiskLens",
+  "description": "A modern, desktop-grade Linux disk management utility with duplicate file finding and interactive storage visualization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
