@@ -1,13 +1,8 @@
 import { create } from 'zustand';
 import { StorageDrive, DiskNode, DiskStats } from '../types/disk';
 import { FileItem, FileCategory } from '../types/file';
-import {
-  initialDrives,
-  initialFilesystemTree,
-  initialLargeFiles,
-  initialDiskStats,
-} from '../data/mockData';
 import { filesystemService } from '../services/filesystemService';
+import { BrowserScanResult } from '../services/browserScanner';
 
 interface FilesystemState {
   drives: StorageDrive[];
@@ -22,6 +17,7 @@ interface FilesystemState {
   largeFilesSortBy: 'size_desc' | 'size_asc' | 'date_desc' | 'date_asc' | 'name_asc' | 'type_asc';
   selectedFileItem: FileItem | null;
   lastTrashedPaths: string[];
+  isLoading: boolean;
 
   // Actions
   setSelectedDriveId: (id: string) => void;
@@ -34,28 +30,68 @@ interface FilesystemState {
   deleteLargeFile: (fileId: string) => void;
   setLastTrashedPaths: (paths: string[]) => void;
   refreshDiskData: () => Promise<void>;
+  loadBrowserScanResult: (result: BrowserScanResult) => void;
 }
 
+const DEFAULT_ROOT_TREE: DiskNode = {
+  name: 'System Workspace',
+  path: '/',
+  size: 0,
+  percentage: 100,
+  type: 'folder',
+  filesCount: 0,
+  children: [],
+};
+
+const DEFAULT_DISK_STATS: DiskStats = {
+  totalBytes: 500 * 1024 * 1024 * 1024,
+  usedBytes: 150 * 1024 * 1024 * 1024,
+  freeBytes: 350 * 1024 * 1024 * 1024,
+  duplicateBytes: 0,
+  largeFileBytes: 0,
+  trashBytes: 0,
+};
+
 export const useFilesystemStore = create<FilesystemState>((set, get) => ({
-  drives: initialDrives,
+  drives: [
+    {
+      id: 'drive-main',
+      name: 'System Root',
+      mountPoint: '/',
+      devicePath: '/dev/root',
+      filesystem: 'ext4',
+      totalBytes: 500 * 1024 * 1024 * 1024,
+      usedBytes: 150 * 1024 * 1024 * 1024,
+      freeBytes: 350 * 1024 * 1024 * 1024,
+      type: 'root',
+      isMounted: true,
+    },
+  ],
   selectedDriveId: 'drive-main',
-  diskStats: initialDiskStats,
-  rootTree: initialFilesystemTree,
-  currentTreemapNode: initialFilesystemTree,
+  diskStats: DEFAULT_DISK_STATS,
+  rootTree: DEFAULT_ROOT_TREE,
+  currentTreemapNode: DEFAULT_ROOT_TREE,
   pathBreadcrumbs: [{ name: '/', path: '/' }],
-  largeFiles: initialLargeFiles,
-  largeFilesThresholdMB: 500,
+  largeFiles: [],
+  largeFilesThresholdMB: 10,
   largeFilesCategoryFilter: 'all',
   largeFilesSortBy: 'size_desc',
   selectedFileItem: null,
   lastTrashedPaths: [],
+  isLoading: false,
 
-  setSelectedDriveId: (id) => set({ selectedDriveId: id }),
+  setSelectedDriveId: (id) => {
+    set({ selectedDriveId: id });
+    const { drives } = get();
+    const drive = drives.find(d => d.id === id);
+    if (drive) {
+      get().refreshDiskData();
+    }
+  },
 
   drillDownNode: (node) => {
     if (node.type !== 'folder' || !node.children || node.children.length === 0) return;
-    
-    // Build path breadcrumbs
+
     const parts = node.path.split('/').filter(Boolean);
     const breadcrumbs: { name: string; path: string }[] = [{ name: '/', path: '/' }];
     let accPath = '';
@@ -136,8 +172,47 @@ export const useFilesystemStore = create<FilesystemState>((set, get) => ({
   setLastTrashedPaths: (paths) => set({ lastTrashedPaths: paths }),
 
   refreshDiskData: async () => {
-    const drives = await filesystemService.getStorageDrives();
-    const stats = await filesystemService.getDiskStats();
-    set({ drives, diskStats: stats });
+    set({ isLoading: true });
+    try {
+      const [drives, stats, tree, largeFiles] = await Promise.all([
+        filesystemService.getStorageDrives(),
+        filesystemService.getDiskStats(),
+        filesystemService.getDiskTree(),
+        filesystemService.getLargeFiles(1024 * 1024),
+      ]);
+
+      const selectedId = drives[0]?.id || 'drive-main';
+
+      set({
+        drives,
+        selectedDriveId: selectedId,
+        diskStats: stats,
+        rootTree: tree,
+        currentTreemapNode: tree,
+        pathBreadcrumbs: [{ name: '/', path: '/' }],
+        largeFiles,
+        isLoading: false,
+      });
+    } catch {
+      set({ isLoading: false });
+    }
+  },
+
+  loadBrowserScanResult: (result: BrowserScanResult) => {
+    const total = result.totalBytes || 100 * 1024 * 1024;
+    set({
+      rootTree: result.tree,
+      currentTreemapNode: result.tree,
+      pathBreadcrumbs: [{ name: result.tree.name, path: result.tree.path }],
+      largeFiles: result.largeFiles,
+      diskStats: {
+        totalBytes: total * 1.5,
+        usedBytes: total,
+        freeBytes: total * 0.5,
+        duplicateBytes: result.duplicates.reduce((acc, g) => acc + g.recoverableSize, 0),
+        largeFileBytes: result.largeFiles.reduce((acc, f) => acc + f.size, 0),
+        trashBytes: 0,
+      },
+    });
   },
 }));

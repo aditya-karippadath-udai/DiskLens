@@ -18,7 +18,7 @@ export interface FileItem {
   category: FileCategory;
   modifiedAt: string;
   createdAt?: string;
-  hash: string;
+  hash?: string;
   permissions?: string; // e.g. "-rw-r--r--"
   mimeType?: string;
   isSelected?: boolean;

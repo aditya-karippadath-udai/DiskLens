@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Folder,
   Home,
@@ -6,28 +6,35 @@ import {
   Usb,
   Sparkles,
   Sliders,
-  Filter,
   Layers,
   Link as LinkIcon,
   EyeOff,
-  Hash,
+  FolderSearch,
 } from 'lucide-react';
 import { useScanStore } from '../../store/scanStore';
+import { useFilesystemStore } from '../../store/filesystemStore';
+import { useAppStore } from '../../store/appStore';
 import { ScanTargetType, HashAlgorithm } from '../../types/scan';
 import { FileCategory } from '../../types/file';
 import { Button } from '../common/Button';
 import { clsx } from 'clsx';
+import { scanBrowserDirectoryHandle } from '../../services/browserScanner';
+import { formatBytes } from '../../data/mockData';
 
 export const ScanConfigPanel: React.FC = () => {
-  const { scanOptions, setScanOptions, setTargetType, startScan, scanProgress } = useScanStore();
-  const [customPathInput, setCustomPathInput] = useState('/home/aditya/Downloads');
+  const { scanOptions, setScanOptions, setTargetType, startScan, scanProgress, setDuplicateGroups } = useScanStore();
+  const { loadBrowserScanResult } = useFilesystemStore();
+  const { addToast } = useAppStore();
+  const [customPathInput, setCustomPathInput] = useState('/workspace');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isBrowserScanning, setIsBrowserScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const targetTypes: { type: ScanTargetType; label: string; path: string; icon: any }[] = [
-    { type: 'home', label: 'Home Folder', path: '/home/aditya', icon: Home },
+    { type: 'home', label: 'Home / Workspace', path: '/workspace', icon: Home },
     { type: 'root', label: 'Root Filesystem', path: '/', icon: HardDrive },
-    { type: 'external', label: 'External SSD', path: '/media/aditya/Samsung_T7', icon: Usb },
-    { type: 'custom', label: 'Custom Folder', path: customPathInput, icon: Folder },
+    { type: 'external', label: 'External SSD', path: '/media', icon: Usb },
+    { type: 'custom', label: 'Custom Path', path: customPathInput, icon: Folder },
   ];
 
   const categories: { cat: FileCategory; label: string }[] = [
@@ -52,15 +59,81 @@ export const ScanConfigPanel: React.FC = () => {
     }
   };
 
-  const isScanning = scanProgress.status === 'scanning' || scanProgress.status === 'paused';
+  const handlePickLocalFolder = async () => {
+    if ('showDirectoryPicker' in window) {
+      try {
+        const dirHandle = await (window as any).showDirectoryPicker();
+        setIsBrowserScanning(true);
+        addToast({
+          type: 'info',
+          title: 'Scanning Local Folder',
+          message: `Reading files and computing SHA-256 hashes for "${dirHandle.name}"...`,
+        });
+
+        const result = await scanBrowserDirectoryHandle(dirHandle);
+        loadBrowserScanResult(result);
+        setDuplicateGroups(result.duplicates);
+
+        setIsBrowserScanning(false);
+        addToast({
+          type: 'success',
+          title: 'Scan Complete',
+          message: `Scanned ${result.totalFiles} files (${formatBytes(result.totalBytes)}). Found ${result.duplicates.length} duplicate groups.`,
+        });
+      } catch (err: any) {
+        setIsBrowserScanning(false);
+        if (err.name !== 'AbortError') {
+          addToast({
+            type: 'error',
+            title: 'Directory Access Error',
+            message: err.message || 'Could not access the selected directory.',
+          });
+        }
+      }
+    } else if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const isScanning = scanProgress.status === 'scanning' || scanProgress.status === 'paused' || isBrowserScanning;
 
   return (
     <div className="p-6 bg-slate-900/60 border border-slate-800/80 rounded-2xl backdrop-blur-md space-y-6">
       {/* Target Directory Selection */}
       <div className="space-y-3">
-        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
-          Select Scan Location
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+            Select Scan Location
+          </label>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handlePickLocalFolder}
+            disabled={isScanning}
+            leftIcon={<FolderSearch className="w-3.5 h-3.5 text-sky-400" />}
+            className="text-xs"
+          >
+            Pick Local Folder...
+          </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            // @ts-ignore
+            webkitdirectory="true"
+            directory="true"
+            className="hidden"
+            onChange={async (e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                // Read files list
+                addToast({
+                  type: 'info',
+                  title: 'Folder Selected',
+                  message: `Loaded ${e.target.files.length} files from local folder.`,
+                });
+              }
+            }}
+          />
+        </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {targetTypes.map((target) => {

@@ -10,9 +10,15 @@ import { filesystemService } from '../services/filesystemService';
 import { formatBytes } from '../data/mockData';
 
 export const LargeFilesPage: React.FC = () => {
-  const { largeFiles, deleteLargeFile } = useFilesystemStore();
+  const { largeFiles, deleteLargeFile, refreshDiskData } = useFilesystemStore();
   const { addToast } = useAppStore();
   const { settings } = useSettingsStore();
+
+  React.useEffect(() => {
+    if (largeFiles.length === 0) {
+      refreshDiskData();
+    }
+  }, []);
 
   const [inspectingFile, setInspectingFile] = useState<FileItem | null>(null);
   const [fileToDelete, setFileToDelete] = useState<FileItem | null>(null);

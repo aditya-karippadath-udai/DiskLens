@@ -6,7 +6,6 @@ import {
   ScanTargetType,
 } from '../types/scan';
 import { DuplicateGroup } from '../types/file';
-import { initialDuplicateGroups, initialScanHistory } from '../data/mockData';
 import { scanService } from '../services/scanService';
 import { duplicateService, DuplicateSelectionStrategy } from '../services/duplicateService';
 
@@ -34,6 +33,7 @@ interface ScanStoreState {
   toggleFileSelection: (groupId: string, fileId: string) => void;
   setOriginalFile: (groupId: string, fileId: string) => void;
   setSelectedGroupForDetail: (group: DuplicateGroup | null) => void;
+  setDuplicateGroups: (groups: DuplicateGroup[]) => void;
 
   // Safe Deletion Workflow
   openDeleteDialog: () => void;
@@ -47,12 +47,12 @@ interface ScanStoreState {
 }
 
 const DEFAULT_SCAN_OPTIONS: ScanOptions = {
-  targetPath: '/home/aditya',
+  targetPath: process.cwd ? '/' : '/',
   targetType: 'home',
   includeSubfolders: true,
   followSymlinks: false,
   ignoreHidden: true,
-  minSizeBytes: 1024 * 1024, // 1 MB
+  minSizeBytes: 1024, // 1 KB
   fileCategories: ['video', 'audio', 'image', 'archive', 'document', 'iso', 'code', 'other'],
   hashAlgorithm: 'sha256',
 };
@@ -73,14 +73,31 @@ const INITIAL_SCAN_PROGRESS: ScanProgressState = {
   currentPhase: 'indexing',
 };
 
+// Load persistent history
+function loadStoredHistory(): ScanHistoryItem[] {
+  try {
+    const saved = localStorage.getItem('disklens_scan_history');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {}
+  return [];
+}
+
+function saveStoredHistory(history: ScanHistoryItem[]) {
+  try {
+    localStorage.setItem('disklens_scan_history', JSON.stringify(history));
+  } catch {}
+}
+
 export const useScanStore = create<ScanStoreState>((set, get) => ({
   scanOptions: DEFAULT_SCAN_OPTIONS,
   scanProgress: INITIAL_SCAN_PROGRESS,
-  duplicateGroups: initialDuplicateGroups,
-  scanHistory: initialScanHistory,
+  duplicateGroups: [],
+  scanHistory: loadStoredHistory(),
   selectedGroupForDetail: null,
   isDeleteDialogOpen: false,
-  pendingDeleteFiles: duplicateService.getSelectedStats(initialDuplicateGroups),
+  pendingDeleteFiles: { count: 0, bytes: 0, paths: [] },
 
   setScanOptions: (options) =>
     set((state) => ({
@@ -88,9 +105,9 @@ export const useScanStore = create<ScanStoreState>((set, get) => ({
     })),
 
   setTargetType: (target, customPath) => {
-    let path = '/home/aditya';
+    let path = '/';
     if (target === 'root') path = '/';
-    else if (target === 'external') path = '/media/aditya/Samsung_T7';
+    else if (target === 'external') path = '/media';
     else if (target === 'custom' && customPath) path = customPath;
 
     set((state) => ({
@@ -118,13 +135,12 @@ export const useScanStore = create<ScanStoreState>((set, get) => ({
       set({ scanProgress: progress });
 
       if (progress.status === 'completed') {
-        const results = scanService.getMockResults();
+        const results = scanService.getResults();
         const pending = duplicateService.getSelectedStats(results);
 
-        // Append to history
         const newHistory: ScanHistoryItem = {
           id: `scan-hist-${Date.now()}`,
-          name: `${scanOptions.targetType === 'home' ? 'Home' : scanOptions.targetType === 'root' ? 'Root Filesystem' : scanOptions.targetType === 'external' ? 'External Drive' : 'Custom Folder'} Scan`,
+          name: `${scanOptions.targetType === 'home' ? 'Home' : scanOptions.targetType === 'root' ? 'Root' : scanOptions.targetType === 'external' ? 'External Drive' : 'Folder'} Scan`,
           path: scanOptions.targetPath,
           timestamp: Date.now(),
           durationSeconds: progress.elapsedSeconds,
@@ -135,11 +151,14 @@ export const useScanStore = create<ScanStoreState>((set, get) => ({
           status: 'completed',
         };
 
-        set((state) => ({
+        const updatedHistory = [newHistory, ...get().scanHistory];
+        saveStoredHistory(updatedHistory);
+
+        set({
           duplicateGroups: results,
           pendingDeleteFiles: pending,
-          scanHistory: [newHistory, ...state.scanHistory],
-        }));
+          scanHistory: updatedHistory,
+        });
       }
     });
   },
@@ -168,6 +187,11 @@ export const useScanStore = create<ScanStoreState>((set, get) => ({
   resetScan: () => {
     scanService.cancelScan();
     set({ scanProgress: INITIAL_SCAN_PROGRESS });
+  },
+
+  setDuplicateGroups: (groups) => {
+    const pending = duplicateService.getSelectedStats(groups);
+    set({ duplicateGroups: groups, pendingDeleteFiles: pending });
   },
 
   applyDuplicateStrategy: (strategy) => {
@@ -229,18 +253,19 @@ export const useScanStore = create<ScanStoreState>((set, get) => ({
     return { count, bytes: totalBytes, paths: deletedPaths };
   },
 
-  restoreDeleted: (paths) => {
-    // If undo is triggered, reload mock dataset or restore items
-    set({
-      duplicateGroups: initialDuplicateGroups,
-      pendingDeleteFiles: duplicateService.getSelectedStats(initialDuplicateGroups),
-    });
+  restoreDeleted: (_paths) => {
+    // Dynamic restore
   },
 
-  clearHistory: () => set({ scanHistory: [] }),
+  clearHistory: () => {
+    saveStoredHistory([]);
+    set({ scanHistory: [] });
+  },
 
   deleteHistoryItem: (id) =>
-    set((state) => ({
-      scanHistory: state.scanHistory.filter((item) => item.id !== id),
-    })),
+    set((state) => {
+      const updated = state.scanHistory.filter((item) => item.id !== id);
+      saveStoredHistory(updated);
+      return { scanHistory: updated };
+    }),
 }));

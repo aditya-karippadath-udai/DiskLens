@@ -21,7 +21,15 @@ export const DiskUsagePage: React.FC = () => {
     pathBreadcrumbs,
     drillDownNode,
     navigateToBreadcrumb,
+    rootTree,
+    refreshDiskData,
   } = useFilesystemStore();
+
+  React.useEffect(() => {
+    if (!rootTree || !rootTree.children || rootTree.children.length === 0) {
+      refreshDiskData();
+    }
+  }, []);
 
   const handleGoBack = () => {
     if (pathBreadcrumbs.length > 1) {

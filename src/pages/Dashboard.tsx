@@ -26,9 +26,13 @@ import { clsx } from 'clsx';
 
 export const DashboardPage: React.FC = () => {
   const { setCurrentPage, addToast } = useAppStore();
-  const { drives, selectedDriveId, setSelectedDriveId, diskStats } = useFilesystemStore();
+  const { drives, selectedDriveId, setSelectedDriveId, diskStats, refreshDiskData } = useFilesystemStore();
   const { startScan, setTargetType } = useScanStore();
   const [distributionView, setDistributionView] = useState<'sunburst' | 'categories'>('sunburst');
+
+  React.useEffect(() => {
+    refreshDiskData();
+  }, []);
 
   const currentDrive = drives.find((d) => d.id === selectedDriveId) || drives[0];
 
