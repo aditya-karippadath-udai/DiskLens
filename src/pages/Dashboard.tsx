@@ -5,6 +5,7 @@ import { useScanStore } from '../store/scanStore';
 import { StorageGauge } from '../components/dashboard/StorageGauge';
 import { StatCard } from '../components/dashboard/StatCard';
 import { DriveSelector } from '../components/dashboard/DriveSelector';
+import { DiskSunburst } from '../components/dashboard/DiskSunburst';
 import { ActivityChart } from '../components/dashboard/ActivityChart';
 import { Button } from '../components/common/Button';
 import {
@@ -17,13 +18,17 @@ import {
   ArrowRight,
   ShieldCheck,
   FolderOpen,
+  Compass,
+  BarChart3,
 } from 'lucide-react';
 import { formatBytes } from '../data/mockData';
+import { clsx } from 'clsx';
 
 export const DashboardPage: React.FC = () => {
   const { setCurrentPage, addToast } = useAppStore();
   const { drives, selectedDriveId, setSelectedDriveId, diskStats } = useFilesystemStore();
   const { startScan, setTargetType } = useScanStore();
+  const [distributionView, setDistributionView] = useState<'sunburst' | 'categories'>('sunburst');
 
   const currentDrive = drives.find((d) => d.id === selectedDriveId) || drives[0];
 
@@ -140,59 +145,101 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Activity Chart & Quick Actions Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Activity & Category Distribution */}
-        <div className="lg:col-span-8">
-          <ActivityChart />
+      {/* Interactive Disk Usage Distribution (Sunburst & Breakdown) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+              Disk Usage Distribution by Folder Size
+            </span>
+          </div>
+
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setDistributionView('sunburst')}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all',
+                distributionView === 'sunburst'
+                  ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/40'
+                  : 'text-slate-400 hover:text-slate-200'
+              )}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>D3 Sunburst</span>
+            </button>
+
+            <button
+              onClick={() => setDistributionView('categories')}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all',
+                distributionView === 'categories'
+                  ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/40'
+                  : 'text-slate-400 hover:text-slate-200'
+              )}
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Category Breakdown</span>
+            </button>
+          </div>
         </div>
 
-        {/* Quick Utilities Panel */}
-        <div className="lg:col-span-4 p-5 bg-slate-900/60 border border-slate-800/80 rounded-2xl backdrop-blur-md flex flex-col justify-between">
-          <div>
-            <h4 className="text-sm font-semibold text-slate-100 mb-1">Quick Optimization</h4>
-            <p className="text-xs text-slate-400 mb-4">Recommended cleanup actions for this drive</p>
+        {/* Render Selected View */}
+        {distributionView === 'sunburst' ? (
+          <DiskSunburst />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div className="lg:col-span-8">
+              <ActivityChart />
+            </div>
 
-            <div className="space-y-2">
-              <button
-                onClick={() => setCurrentPage('duplicates')}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-slate-800 hover:border-slate-700 hover:bg-slate-850 text-left transition-all text-xs group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                    <Copy className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-200 block">Purge Duplicates</span>
-                    <span className="text-[11px] text-slate-400 font-mono">18.4 GB recoverable</span>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all" />
-              </button>
+            {/* Quick Utilities Panel */}
+            <div className="lg:col-span-4 p-5 bg-slate-900/60 border border-slate-800/80 rounded-2xl backdrop-blur-md flex flex-col justify-between">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-100 mb-1">Quick Optimization</h4>
+                <p className="text-xs text-slate-400 mb-4">Recommended cleanup actions for this drive</p>
 
-              <button
-                onClick={() => setCurrentPage('large-files')}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-slate-800 hover:border-slate-700 hover:bg-slate-850 text-left transition-all text-xs group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
-                    <FileSpreadsheet className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-200 block">Inspect Heavy ISOs & Archives</span>
-                    <span className="text-[11px] text-slate-400 font-mono">73.2 GB consuming</span>
-                  </div>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setCurrentPage('duplicates')}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-slate-800 hover:border-slate-700 hover:bg-slate-850 text-left transition-all text-xs group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                        <Copy className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-slate-200 block">Purge Duplicates</span>
+                        <span className="text-[11px] text-slate-400 font-mono">18.4 GB recoverable</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentPage('large-files')}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-slate-800 hover:border-slate-700 hover:bg-slate-850 text-left transition-all text-xs group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                        <FileSpreadsheet className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-slate-200 block">Inspect Heavy ISOs & Archives</span>
+                        <span className="text-[11px] text-slate-400 font-mono">73.2 GB consuming</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all" />
+                  </button>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all" />
-              </button>
+              </div>
+
+              <div className="pt-4 mt-4 border-t border-slate-800/80 text-[11px] text-slate-400 font-mono flex items-center justify-between">
+                <span>Storage Driver: POSIX Native</span>
+                <span className="text-emerald-400 font-bold">READY</span>
+              </div>
             </div>
           </div>
-
-          <div className="pt-4 mt-4 border-t border-slate-800/80 text-[11px] text-slate-400 font-mono flex items-center justify-between">
-            <span>Storage Driver: POSIX Native</span>
-            <span className="text-emerald-400 font-bold">READY</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
