@@ -1,16 +1,14 @@
 // Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[allow(unused_imports)]
 use chrono::{DateTime, Utc};
-use rayon::prelude::*;
+#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Read};
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::path::Path;
 use sysinfo::Disks;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -209,9 +207,9 @@ fn build_node(path: &Path, depth: usize, max_depth: usize) -> DiskNode {
 
     if !path.is_dir() || depth >= max_depth {
         let meta = path.metadata().ok();
-        let size = meta.map(|m| m.len()).unwrap_or(0);
-        let modified = meta.and_then(|m| m.modified().ok()).map(|t| {
-            let dt: DateTime<Utc> = t.into();
+        let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+        let modified = meta.as_ref().and_then(|m| m.modified().ok()).map(|t| {
+            let dt: DateTime<Utc> = (*t).into();
             dt.to_rfc3339()
         });
 

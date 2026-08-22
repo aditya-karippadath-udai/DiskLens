@@ -2,111 +2,91 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-// CRC32 table
-const crcTable = [];
-for (let n = 0; n < 256; n++) {
-  let c = n;
+// Precomputed CRC32 table
+const crcTable = new Uint32Array(256);
+for (let i = 0; i < 256; i++) {
+  let c = i;
   for (let k = 0; k < 8; k++) {
-    if (c & 1) {
-      c = 0xedb88320 ^ (c >>> 1);
-    } else {
-      c = c >>> 1;
-    }
+    c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
   }
-  crcTable[n] = c;
+  crcTable[i] = c >>> 0;
 }
 
-function crc32(buf) {
-  let crc = 0 ^ -1;
+function calculateCrc(buf) {
+  let crc = 0xffffffff;
   for (let i = 0; i < buf.length; i++) {
     crc = (crc >>> 8) ^ crcTable[(crc ^ buf[i]) & 0xff];
   }
-  return (crc ^ -1) >>> 0;
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
-function makeChunk(type, data) {
-  const len = data.length;
+function createChunk(typeStr, dataBuf) {
+  const len = dataBuf.length;
+  const typeBuf = Buffer.from(typeStr, 'ascii');
+  const typeAndData = Buffer.concat([typeBuf, dataBuf]);
+  const crc = calculateCrc(typeAndData);
+
   const chunk = Buffer.alloc(12 + len);
   chunk.writeUInt32BE(len, 0);
-  chunk.write(type, 4);
-  data.copy(chunk, 8);
-  const crcBuf = Buffer.concat([Buffer.from(type), data]);
-  chunk.writeUInt32BE(crc32(crcBuf), 8 + len);
+  typeBuf.copy(chunk, 4);
+  dataBuf.copy(chunk, 8);
+  chunk.writeUInt32BE(crc, 8 + len);
   return chunk;
 }
 
-function createPng(width, height) {
-  const header = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+function generatePng(width, height) {
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-  // IHDR
+  // IHDR (13 bytes)
   const ihdrData = Buffer.alloc(13);
   ihdrData.writeUInt32BE(width, 0);
   ihdrData.writeUInt32BE(height, 4);
-  ihdrData[8] = 8; // bit depth
-  ihdrData[9] = 6; // color type RGBA
-  ihdrData[10] = 0; // compression
-  ihdrData[11] = 0; // filter
-  ihdrData[12] = 0; // interlace
-  const ihdr = makeChunk('IHDR', ihdrData);
+  ihdrData[8] = 8; // 8-bit depth
+  ihdrData[9] = 6; // Color type 6 = RGBA
+  ihdrData[10] = 0; // Compression (deflate)
+  ihdrData[11] = 0; // Filter method
+  ihdrData[12] = 0; // Interlace (none)
+  const ihdrChunk = createChunk('IHDR', ihdrData);
 
-  // Raw image data with scanline filter 0
-  const rowLen = 1 + width * 4;
-  const rawData = Buffer.alloc(rowLen * height);
+  // Raw RGBA scanlines with filter byte 0
+  const rowBytes = 1 + width * 4;
+  const rawData = Buffer.alloc(rowBytes * height);
 
   const cx = width / 2;
   const cy = height / 2;
-  const r = width * 0.42;
+  const radius = width * 0.44;
 
   for (let y = 0; y < height; y++) {
-    const rowOffset = y * rowLen;
-    rawData[rowOffset] = 0; // filter None
+    const rowOffset = y * rowBytes;
+    rawData[rowOffset] = 0; // Filter 0 (None)
+
     for (let x = 0; x < width; x++) {
       const pxOffset = rowOffset + 1 + x * 4;
       const dx = x - cx;
       const dy = y - cy;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist <= r) {
-        // Cyan to Indigo gradient icon
-        const t = (x + y) / (width + height);
-        rawData[pxOffset] = Math.round(14 + (99 - 14) * t);     // R (Sky blue)
-        rawData[pxOffset + 1] = Math.round(165 + (102 - 165) * t); // G
-        rawData[pxOffset + 2] = Math.round(233 + (241 - 233) * t); // B
+      if (dist <= radius) {
+        const ratio = (x + y) / (width + height);
+        // Modern Sky-to-Indigo DiskLens Theme
+        rawData[pxOffset] = Math.round(14 + (99 - 14) * ratio);     // R: #0ea5e9 -> #6366f1
+        rawData[pxOffset + 1] = Math.round(165 + (102 - 165) * ratio); // G
+        rawData[pxOffset + 2] = Math.round(233 + (241 - 233) * ratio); // B
         rawData[pxOffset + 3] = 255; // Alpha
       } else {
         rawData[pxOffset] = 0;
         rawData[pxOffset + 1] = 0;
         rawData[pxOffset + 2] = 0;
-        rawData[pxOffset + 3] = 0; // transparent
+        rawData[pxOffset + 3] = 0; // Transparent
       }
     }
   }
 
-  const compressed = zlib.deflateSync(rawData);
-  const idat = makeChunk('IDAT', compressed);
-  const iend = makeChunk('IEND', Buffer.alloc(0));
+  const compressedData = zlib.deflateSync(rawData, { level: 9 });
+  const idatChunk = createChunk('IDAT', compressedData);
+  const iendChunk = createChunk('IEND', Buffer.alloc(0));
 
-  return Buffer.concat([header, ihdr, idat, iend]);
-}
-
-function createIco(pngBuffer) {
-  // Minimal 1-image ICO wrapping a PNG
-  const icoHeader = Buffer.alloc(6);
-  icoHeader.writeUInt16LE(0, 0); // reserved
-  icoHeader.writeUInt16LE(1, 2); // type 1 = icon
-  icoHeader.writeUInt16LE(1, 4); // 1 image
-
-  const dirEntry = Buffer.alloc(16);
-  dirEntry[0] = 0; // width (0 = 256 or custom)
-  dirEntry[1] = 0; // height
-  dirEntry[2] = 0; // color palette
-  dirEntry[3] = 0; // reserved
-  dirEntry.writeUInt16LE(1, 4); // color planes
-  dirEntry.writeUInt16LE(32, 6); // bits per pixel
-  dirEntry.writeUInt32LE(pngBuffer.length, 8); // image size
-  dirEntry.writeUInt32LE(22, 12); // image offset (6 + 16 = 22)
-
-  return Buffer.concat([icoHeader, dirEntry, pngBuffer]);
+  return Buffer.concat([signature, ihdrChunk, idatChunk, iendChunk]);
 }
 
 const iconsDir = path.join(__dirname, '..', 'src-tauri', 'icons');
@@ -114,16 +94,19 @@ if (!fs.existsSync(iconsDir)) {
   fs.mkdirSync(iconsDir, { recursive: true });
 }
 
-const p32 = createPng(32, 32);
-const p128 = createPng(128, 128);
-const p256 = createPng(256, 256);
-const p512 = createPng(512, 512);
+// Generate all standard icon resolutions
+const png32 = generatePng(32, 32);
+const png128 = generatePng(128, 128);
+const png256 = generatePng(256, 256);
+const png512 = generatePng(512, 512);
 
-fs.writeFileSync(path.join(iconsDir, '32x32.png'), p32);
-fs.writeFileSync(path.join(iconsDir, '128x128.png'), p128);
-fs.writeFileSync(path.join(iconsDir, '128x128@2x.png'), p256);
-fs.writeFileSync(path.join(iconsDir, 'icon.png'), p512);
-fs.writeFileSync(path.join(iconsDir, 'icon.ico'), createIco(p256));
-fs.writeFileSync(path.join(iconsDir, 'icon.icns'), p512); // placeholder buffer
+fs.writeFileSync(path.join(iconsDir, '32x32.png'), png32);
+fs.writeFileSync(path.join(iconsDir, '128x128.png'), png128);
+fs.writeFileSync(path.join(iconsDir, '128x128@2x.png'), png256);
+fs.writeFileSync(path.join(iconsDir, 'icon.png'), png512);
 
-console.log('Tauri icons successfully generated in src-tauri/icons/');
+console.log('✅ Standard compliant Tauri PNG icons successfully generated:');
+console.log(' - 32x32.png: ' + png32.length + ' bytes');
+console.log(' - 128x128.png: ' + png128.length + ' bytes');
+console.log(' - 128x128@2x.png: ' + png256.length + ' bytes');
+console.log(' - icon.png: ' + png512.length + ' bytes');
