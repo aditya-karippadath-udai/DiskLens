@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ResponsiveContainer,
   PieChart,
@@ -244,6 +245,17 @@ export const DiskSunburstRecharts: React.FC<DiskSunburstRechartsProps> = ({
       directFiles: filesList.sort((a, b) => b.size - a.size),
     };
   }, [node, children, metricMode, filterThresholdMB, itemTypeFilter]);
+
+  // Keyboard shortcut: close modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedFile) {
+        setSelectedFile(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedFile]);
 
   // Handle click on slice:
   // - If folder: Drill down to focus that folder and its sub-folders & files
@@ -823,150 +835,164 @@ export const DiskSunburstRecharts: React.FC<DiskSunburstRechartsProps> = ({
         </div>
       </div>
 
-      {/* File Inspector Modal / Detailed Inspection Drawer */}
-      <AnimatePresence>
-        {selectedFile && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-150">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-6 space-y-5 text-slate-100"
-            >
-              {/* Modal Header */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
-                    {getCategoryIcon(selectedFile.node.category, 'file')}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-base font-bold text-slate-100 truncate">
-                      {selectedFile.node.name}
-                    </h3>
-                    <span className="text-xs font-mono text-sky-400 capitalize">
-                      {selectedFile.node.category || 'generic'} file
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setSelectedFile(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Path Bar with 1-Click Copy */}
-              <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between gap-2">
-                <div className="min-w-0 font-mono text-xs text-slate-300 truncate">
-                  {selectedFile.node.path}
-                </div>
-                <button
-                  onClick={() => handleCopyPath(selectedFile.node.path)}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-lg text-xs font-mono shrink-0 transition-colors border border-slate-700"
-                >
-                  {copiedPath ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* File Properties Grid */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-1">
-                  <span className="text-[11px] text-slate-400">File Size</span>
-                  <p className="text-sm font-mono font-bold text-sky-400">
-                    {formatBytes(selectedFile.node.size)}
-                  </p>
-                  <span className="text-[10px] font-mono text-slate-500">
-                    {selectedFile.node.size.toLocaleString()} bytes
-                  </span>
-                </div>
-
-                <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-1">
-                  <span className="text-[11px] text-slate-400">Category / Extension</span>
-                  <p className="text-sm font-semibold text-slate-200 uppercase">
-                    {selectedFile.node.name.split('.').pop() || 'FILE'}
-                  </p>
-                  <span className="text-[10px] font-mono text-slate-500 capitalize">
-                    {selectedFile.node.category || 'other'} category
-                  </span>
-                </div>
-
-                <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-1">
-                  <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                    <Shield className="w-3 h-3 text-slate-400" />
-                    <span>Linux Permissions</span>
-                  </span>
-                  <p className="text-xs font-mono font-bold text-slate-300">
-                    -rw-r--r-- (0644)
-                  </p>
-                </div>
-
-                <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-1">
-                  <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                    <Calendar className="w-3 h-3 text-slate-400" />
-                    <span>Last Modified</span>
-                  </span>
-                  <p className="text-xs font-mono text-slate-300">
-                    {selectedFile.node.modifiedAt
-                      ? formatDate(selectedFile.node.modifiedAt)
-                      : 'Recently indexed'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-end gap-2.5">
-                {selectedFile.parentRawNode && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      if (selectedFile.parentRawNode) {
-                        onDrillDown(selectedFile.parentRawNode);
-                        setSelectedFile(null);
-                      }
-                    }}
-                    leftIcon={<Folder className="w-3.5 h-3.5" />}
-                  >
-                    Focus Parent Folder
-                  </Button>
-                )}
-
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
+      {/* File Inspector Modal / Detailed Inspection Drawer rendered via Portal */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {selectedFile && (
+              <div
+                className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
                     setSelectedFile(null);
-                    setCurrentPage('large-files');
-                  }}
-                  leftIcon={<FileCode className="w-3.5 h-3.5" />}
+                  }
+                }}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="w-full max-w-lg bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl p-5 sm:p-6 space-y-5 text-slate-100 my-auto max-h-[90vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Locate in Large Files
-                </Button>
+                  {/* Modal Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
+                        {getCategoryIcon(selectedFile.node.category, 'file')}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-bold text-slate-100 truncate">
+                          {selectedFile.node.name}
+                        </h3>
+                        <span className="text-xs font-mono text-sky-400 capitalize">
+                          {selectedFile.node.category || 'generic'} file
+                        </span>
+                      </div>
+                    </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedFile(null)}
-                >
-                  Close
-                </Button>
+                    <button
+                      onClick={() => setSelectedFile(null)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                      aria-label="Close modal"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Path Bar with 1-Click Copy */}
+                  <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between gap-2">
+                    <div className="min-w-0 font-mono text-xs text-slate-300 truncate">
+                      {selectedFile.node.path}
+                    </div>
+                    <button
+                      onClick={() => handleCopyPath(selectedFile.node.path)}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-lg text-xs font-mono shrink-0 transition-colors border border-slate-700"
+                    >
+                      {copiedPath ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400">Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* File Properties Grid */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-1">
+                      <span className="text-[11px] text-slate-400">File Size</span>
+                      <p className="text-sm font-mono font-bold text-sky-400">
+                        {formatBytes(selectedFile.node.size)}
+                      </p>
+                      <span className="text-[10px] font-mono text-slate-500">
+                        {selectedFile.node.size.toLocaleString()} bytes
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-1">
+                      <span className="text-[11px] text-slate-400">Category / Extension</span>
+                      <p className="text-sm font-semibold text-slate-200 uppercase">
+                        {selectedFile.node.name.split('.').pop() || 'FILE'}
+                      </p>
+                      <span className="text-[10px] font-mono text-slate-500 capitalize">
+                        {selectedFile.node.category || 'other'} category
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-1">
+                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-slate-400" />
+                        <span>Linux Permissions</span>
+                      </span>
+                      <p className="text-xs font-mono font-bold text-slate-300">
+                        -rw-r--r-- (0644)
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl space-y-1">
+                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-slate-400" />
+                        <span>Last Modified</span>
+                      </span>
+                      <p className="text-xs font-mono text-slate-300">
+                        {selectedFile.node.modifiedAt
+                          ? formatDate(selectedFile.node.modifiedAt)
+                          : 'Recently indexed'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-end gap-2.5">
+                    {selectedFile.parentRawNode && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedFile.parentRawNode) {
+                            onDrillDown(selectedFile.parentRawNode);
+                            setSelectedFile(null);
+                          }
+                        }}
+                        leftIcon={<Folder className="w-3.5 h-3.5" />}
+                      >
+                        Focus Parent Folder
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setCurrentPage('large-files');
+                      }}
+                      leftIcon={<FileCode className="w-3.5 h-3.5" />}
+                    >
+                      Locate in Large Files
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedFile(null)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </motion.div>
               </div>
-            </motion.div>
-          </div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </div>
   );
 };
