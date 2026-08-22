@@ -209,7 +209,7 @@ fn build_node(path: &Path, depth: usize, max_depth: usize) -> DiskNode {
         let meta = path.metadata().ok();
         let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
         let modified = meta.as_ref().and_then(|m| m.modified().ok()).map(|t| {
-            let dt: DateTime<Utc> = (*t).into();
+            let dt: DateTime<Utc> = t.into();
             dt.to_rfc3339()
         });
 
