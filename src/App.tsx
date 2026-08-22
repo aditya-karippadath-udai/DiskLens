@@ -4,11 +4,10 @@
  */
 
 import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from './store/appStore';
 import { useSettingsStore } from './store/settingsStore';
 import { AppLayout } from './components/layout/AppLayout';
-import { ToastContainer } from './components/common/ToastContainer';
-import { CommandPalette } from './components/layout/CommandPalette';
 
 // Pages
 import { DashboardPage } from './pages/Dashboard';
@@ -19,7 +18,7 @@ import { ScanHistoryPage } from './pages/ScanHistory';
 import { SettingsPage } from './pages/Settings';
 
 export default function App() {
-  const { currentPage, toasts, removeToast } = useAppStore();
+  const { currentPage } = useAppStore();
   const { settings } = useSettingsStore();
 
   // Apply dark/light class on document
@@ -64,10 +63,23 @@ export default function App() {
   };
 
   return (
-    <>
-      <AppLayout>{renderCurrentPage()}</AppLayout>
-      <CommandPalette />
-      <ToastContainer toasts={toasts} onDismiss={removeToast} />
-    </>
+    <AppLayout>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={currentPage}
+          initial={{ opacity: 0, y: 14, scale: 0.995, filter: 'blur(4px)' }}
+          animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, y: -10, scale: 0.995, filter: 'blur(4px)' }}
+          transition={{
+            duration: 0.26,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+          className="w-full flex-1 flex flex-col"
+        >
+          {renderCurrentPage()}
+        </motion.div>
+      </AnimatePresence>
+    </AppLayout>
   );
 }
+
