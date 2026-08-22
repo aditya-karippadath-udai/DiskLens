@@ -1,17 +1,63 @@
-# DiskLens - Tauri Linux (.deb) Build Guide
+# DiskLens - Tauri Linux (.deb / Desktop) Build Guide
 
-DiskLens is configured with **Tauri v2** and **Rust** to build native standalone desktop executables and Debian `.deb` packages for Linux (Ubuntu, Debian, Pop!_OS, Linux Mint, etc.).
+DiskLens is configured with **Tauri v2** and **Rust** to build native standalone desktop executables and Debian `.deb` / AppImage packages for Linux (Arch Linux, Ubuntu, Debian, Pop!_OS, Linux Mint, Fedora, etc.).
 
 ---
 
-## 🚀 Quick Start: Building the `.deb` Package
+## ⚠️ Resolving `sh: line 1: tauri: command not found`
 
-### 1. Prerequisites (on Debian/Ubuntu/Mint)
+If you encounter `tauri: command not found` when running `npm run tauri build`, it is typically caused by one of the following:
 
-Ensure you have Rust and the required GTK/WebKit system libraries installed:
+1. **`node_modules` is not installed yet**:
+   When you clone or download the repo onto your local machine, run:
+   ```bash
+   npm install
+   ```
+   This installs `@tauri-apps/cli` and registers the `tauri` binary inside `./node_modules/.bin/`.
+
+2. **Using `npx` directly without global install**:
+   You can run the Tauri CLI directly using `npx`:
+   ```bash
+   npx @tauri-apps/cli build
+   ```
+
+3. **Or install the native Cargo Tauri CLI**:
+   ```bash
+   cargo install tauri-cli --version "^2.0.0"
+   ```
+
+---
+
+## 🚀 System Prerequisites
+
+### For Arch Linux / Manjaro / EndeavourOS (`archvm`):
 
 ```bash
-# 1. Install system build dependencies
+# 1. Install base build packages and WebKit/GTK dependencies
+sudo pacman -S --needed \
+  base-devel \
+  curl \
+  wget \
+  file \
+  openssl \
+  webkit2gtk-4.1 \
+  gtk3 \
+  libappindicator-gtk3 \
+  librsvg
+
+# 2. Install dpkg from AUR (required on Arch Linux to package .deb files)
+# Using yay:
+yay -S dpkg
+# Or using paru:
+# paru -S dpkg
+
+# 3. Ensure Rust is installed
+sudo pacman -S --needed rust
+```
+
+### For Ubuntu / Debian / Pop!_OS / Linux Mint:
+
+```bash
 sudo apt update
 sudo apt install -y \
   libwebkit2gtk-4.1-dev \
@@ -25,48 +71,48 @@ sudo apt install -y \
   libayatana-appindicator3-dev \
   librsvg2-dev
 
-# 2. Install Rust toolchain (if not already installed)
+# Install Rust toolchain (if not already installed)
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source "$HOME/.cargo/env"
 ```
 
 ---
 
-### 2. Build the `.deb` Package
+## 🔨 Building the Application
 
-Run either of the following npm scripts:
-
+### 1. Install node dependencies:
 ```bash
-# Build web assets and compile the .deb package
-npm run build:deb
+npm install
 ```
 
-or with the Tauri CLI directly:
-
+### 2. Build the `.deb` package:
 ```bash
-npm run tauri:build
+npm run build:deb
+```
+*or alternatively:*
+```bash
+npx @tauri-apps/cli build --bundles deb
 ```
 
 ---
 
 ## 📦 Output Location
 
-Once compilation finishes, your `.deb` installer will be located in:
+Once compilation finishes, your installer will be generated in:
 
 ```
 src-tauri/target/release/bundle/deb/disklens_0.1.0_amd64.deb
 ```
+*(and the standalone binary at `src-tauri/target/release/disklens`)*
 
 ---
 
 ## 💿 Installing the Generated `.deb` Package
 
-To install DiskLens on your system:
-
 ```bash
 sudo dpkg -i src-tauri/target/release/bundle/deb/disklens_0.1.0_amd64.deb
 
-# If there are missing system dependencies, resolve them with:
+# If any dependencies need resolving on Debian/Ubuntu:
 sudo apt-get install -f
 ```
 

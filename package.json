@@ -10,7 +10,7 @@
     "build:deb": "vite build && tauri build --bundles deb",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build --bundles deb",
+    "tauri:build": "tauri build",
     "generate:icons": "node scripts/generate-tauri-icons.cjs",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
