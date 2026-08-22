@@ -15,6 +15,7 @@ import { useAppStore, AppPage } from '../../store/appStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { Tooltip } from '../common/Tooltip';
 import { clsx } from 'clsx';
+import appLogo from '../../assets/Icon.png';
 
 export const Sidebar: React.FC = () => {
   const { currentPage, setCurrentPage, isSidebarCollapsed, toggleSidebar } = useAppStore();
@@ -74,12 +75,9 @@ export const Sidebar: React.FC = () => {
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-center p-1 shadow-md shadow-sky-500/10 shrink-0 overflow-hidden">
               <img
-                src="/icon.png"
+                src={appLogo}
                 alt="DiskLens Logo"
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = 'none';
-                }}
+                className="w-full h-full object-contain rounded-lg"
               />
             </div>
             {!isSidebarCollapsed && (
