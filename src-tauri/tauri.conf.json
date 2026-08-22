@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "disklens",
+  "version": "0.1.0",
+  "identifier": "com.disklens.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:3000",
+    "beforeBuildCommand": "npm run build:web",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "DiskLens - Modern Disk Space Analyzer & Duplicate Finder",
+        "width": 1280,
+        "height": 840,
+        "minWidth": 960,
+        "minHeight": 640,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "fullscreen": false,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "shortDescription": "Modern disk visualizer, storage analyzer and duplicate file finder for Linux",
+    "longDescription": "DiskLens delivers interactive disk usage visualizations (sunburst & treemap), deep duplicate detection, and large file cleanup for Linux desktops.",
+    "category": "Utility",
+    "copyright": "Copyright © 2026 DiskLens. All rights reserved.",
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37",
+          "libgtk-3-0",
+          "libayatana-appindicator3-1 | libappindicator3-1"
+        ],
+        "section": "utils",
+        "priority": "optional",
+        "desktopTemplate": null,
+        "files": {}
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
+  }
+}

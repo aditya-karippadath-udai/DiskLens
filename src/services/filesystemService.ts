@@ -1,5 +1,6 @@
 import { StorageDrive, DiskNode, DiskStats } from '../types/disk';
 import { FileItem, FileCategory } from '../types/file';
+import { invokeTauri } from './tauriBridge';
 
 export interface DeleteResult {
   success: boolean;
@@ -12,13 +13,20 @@ export interface DeleteResult {
 
 /**
  * Dynamic Filesystem Service
- * Interacts with the backend server API for real Linux filesystem stats and operations.
+ * Interacts seamlessly with the Tauri native Rust backend or REST Express backend.
  */
 export const filesystemService = {
   /**
    * Retrieves list of mounted storage devices and filesystems
    */
   async getStorageDrives(): Promise<StorageDrive[]> {
+    // 1. Try native Tauri command if in desktop app
+    const tauriDrives = await invokeTauri<StorageDrive[]>('get_storage_drives');
+    if (tauriDrives && tauriDrives.length > 0) {
+      return tauriDrives;
+    }
+
+    // 2. Try REST backend API
     try {
       const res = await fetch('/api/system/drives');
       if (res.ok) {
@@ -52,6 +60,16 @@ export const filesystemService = {
    * Retrieves hierarchical disk usage tree for sunburst / treemap visualization
    */
   async getDiskTree(targetPath: string = '', depth: number = 4): Promise<DiskNode> {
+    // 1. Try native Tauri command
+    const tauriTree = await invokeTauri<DiskNode>('get_disk_tree', {
+      targetPath: targetPath || undefined,
+      depth,
+    });
+    if (tauriTree) {
+      return tauriTree;
+    }
+
+    // 2. Try REST backend API
     try {
       const url = targetPath
         ? `/api/system/tree?path=${encodeURIComponent(targetPath)}&depth=${depth}`
@@ -82,6 +100,13 @@ export const filesystemService = {
    * Retrieves overall disk statistics
    */
   async getDiskStats(): Promise<DiskStats> {
+    // 1. Try native Tauri command
+    const tauriStats = await invokeTauri<DiskStats>('get_disk_stats');
+    if (tauriStats) {
+      return tauriStats;
+    }
+
+    // 2. Try REST backend API
     try {
       const res = await fetch('/api/system/disk-stats');
       if (res.ok) {
@@ -108,6 +133,19 @@ export const filesystemService = {
    * Queries dynamic large files with size threshold and category filters
    */
   async getLargeFiles(thresholdBytes: number = 1024 * 1024, category?: FileCategory | 'all'): Promise<FileItem[]> {
+    // 1. Try native Tauri command
+    const tauriFiles = await invokeTauri<FileItem[]>('scan_large_files', {
+      minBytes: thresholdBytes,
+    });
+    if (tauriFiles) {
+      let list = tauriFiles;
+      if (category && category !== 'all') {
+        list = list.filter((f) => f.category === category);
+      }
+      return list;
+    }
+
+    // 2. Try REST backend API
     try {
       const res = await fetch(`/api/system/large-files?minBytes=${thresholdBytes}`);
       if (res.ok) {
@@ -130,6 +168,10 @@ export const filesystemService = {
    * Reveals a file or directory
    */
   async revealFile(path: string): Promise<{ success: boolean; message: string }> {
+    const res = await invokeTauri<boolean>('reveal_in_file_manager', { path });
+    if (res !== null) {
+      return { success: res, message: `Revealed ${path}` };
+    }
     return { success: true, message: `Revealed ${path}` };
   },
 
@@ -137,6 +179,10 @@ export const filesystemService = {
    * Opens the file
    */
   async openFile(path: string): Promise<{ success: boolean; message: string }> {
+    const res = await invokeTauri<boolean>('open_file', { path });
+    if (res !== null) {
+      return { success: res, message: `Opened ${path}` };
+    }
     return { success: true, message: `Opened ${path}` };
   },
 
@@ -144,6 +190,13 @@ export const filesystemService = {
    * Fetches detailed file attributes, SHA-256 hash, and inode info
    */
   async getFileDetails(path: string): Promise<FileItem | null> {
+    // 1. Try native Tauri command
+    const tauriDetails = await invokeTauri<FileItem>('get_file_details', { path });
+    if (tauriDetails) {
+      return tauriDetails;
+    }
+
+    // 2. Try REST backend API
     try {
       const res = await fetch(`/api/system/file-details?path=${encodeURIComponent(path)}`);
       if (res.ok) {
@@ -175,6 +228,16 @@ export const filesystemService = {
    * Deletes files by either moving them to Trash or permanently unlinking them
    */
   async deleteFiles(paths: string[], permanent: boolean = false, totalBytes: number = 0): Promise<DeleteResult> {
+    // 1. Try native Tauri command
+    const tauriResult = await invokeTauri<DeleteResult>('delete_files', {
+      paths,
+      permanent,
+    });
+    if (tauriResult) {
+      return tauriResult;
+    }
+
+    // 2. Try REST backend API
     try {
       const res = await fetch('/api/files/delete', {
         method: 'POST',
