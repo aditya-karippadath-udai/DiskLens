@@ -90,7 +90,7 @@ export const useFilesystemStore = create<FilesystemState>((set, get) => ({
   },
 
   drillDownNode: (node) => {
-    if (node.type !== 'folder' || !node.children || node.children.length === 0) return;
+    if (node.type !== 'folder') return;
 
     const parts = node.path.split('/').filter(Boolean);
     const breadcrumbs: { name: string; path: string }[] = [{ name: '/', path: '/' }];

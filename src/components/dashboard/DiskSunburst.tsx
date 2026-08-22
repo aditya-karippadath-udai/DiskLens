@@ -301,8 +301,10 @@ export const DiskSunburst: React.FC<DiskSunburstProps> = ({
           return;
         }
 
-        if (d.data.type === 'folder' && d.data.children && d.data.children.length > 0) {
+        if (d.data.type === 'folder') {
           setActiveRoot(d.data);
+        } else if (d.data.type === 'file') {
+          setHoveredNode(d.data);
         }
       });
 
@@ -528,14 +530,9 @@ export const DiskSunburst: React.FC<DiskSunburstProps> = ({
                   <button
                     key={folder.path}
                     onClick={() => {
-                      if (hasChildren) {
-                        setActiveRoot(folder);
-                      }
+                      setActiveRoot(folder);
                     }}
-                    className={clsx(
-                      'w-full p-2 rounded-lg bg-slate-950/40 border border-slate-800/60 hover:border-slate-700 text-left transition-all text-xs group',
-                      hasChildren ? 'cursor-pointer hover:bg-slate-800/40' : 'cursor-default'
-                    )}
+                    className="w-full p-2 rounded-lg bg-slate-950/40 border border-slate-800/60 hover:border-slate-700 text-left transition-all text-xs group cursor-pointer hover:bg-slate-800/40"
                   >
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2 min-w-0">
