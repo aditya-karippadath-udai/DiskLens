@@ -2,14 +2,11 @@ import React from 'react';
 import {
   Search,
   Settings,
-  Sparkles,
   HardDrive,
   Cpu,
   Activity,
   Sun,
   Moon,
-  Monitor,
-  Command,
 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -19,13 +16,18 @@ export const Header: React.FC = () => {
   const { setCommandPaletteOpen, setCurrentPage } = useAppStore();
   const { settings, setTheme } = useSettingsStore();
 
+  const isLight = settings.theme === 'light';
+
   const toggleTheme = () => {
-    if (settings.theme === 'dark') setTheme('light');
-    else setTheme('dark');
+    if (isLight) {
+      setTheme('dark');
+    } else {
+      setTheme('light');
+    }
   };
 
   return (
-    <header className="h-14 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-xl flex items-center justify-between px-4 z-20 shrink-0">
+    <header className="h-14 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-xl flex items-center justify-between px-4 z-20 shrink-0 transition-colors duration-150">
       {/* Left: Window decor & breadcrumb or title */}
       <div className="flex items-center gap-3">
         {/* Linux window dots decoration */}
@@ -86,13 +88,14 @@ export const Header: React.FC = () => {
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
-          aria-label="Toggle dark/light theme"
-          title={`Switch to ${settings.theme === 'dark' ? 'Light' : 'Dark'} theme`}
+          aria-label={isLight ? 'Switch to Dark mode' : 'Switch to Light mode'}
+          title={isLight ? 'Switch to Dark theme' : 'Switch to Light theme'}
+          className="relative text-slate-300 hover:text-slate-100"
         >
-          {settings.theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400" />
+          {isLight ? (
+            <Moon className="w-4 h-4 text-indigo-500 fill-indigo-500/20" />
           ) : (
-            <Moon className="w-4 h-4 text-slate-300" />
+            <Sun className="w-4 h-4 text-amber-400 fill-amber-400/20" />
           )}
         </Button>
 
