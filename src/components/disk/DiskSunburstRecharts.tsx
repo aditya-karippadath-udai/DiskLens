@@ -841,19 +841,29 @@ export const DiskSunburstRecharts: React.FC<DiskSunburstRechartsProps> = ({
           <AnimatePresence>
             {selectedFile && (
               <div
-                className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto"
+                className="modal-overlay fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
                 onClick={(e) => {
                   if (e.target === e.currentTarget) {
                     setSelectedFile(null);
                   }
                 }}
               >
+                {/* Fixed Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="dialog-backdrop fixed inset-0 bg-slate-950/80 backdrop-blur-md"
+                  onClick={() => setSelectedFile(null)}
+                />
+
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: 12 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 12 }}
                   transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                  className="w-full max-w-lg bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl p-5 sm:p-6 space-y-5 text-slate-100 my-auto max-h-[90vh] overflow-y-auto"
+                  className="popup-container relative w-full max-w-lg bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl p-5 sm:p-6 space-y-5 text-slate-100 my-auto max-h-[90vh] overflow-y-auto z-10"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Modal Header */}

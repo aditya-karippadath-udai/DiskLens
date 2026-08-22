@@ -86,6 +86,51 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
+/* Modal Overlay, Dialog Backdrop & Popup Layouts */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+@media (min-width: 640px) {
+  .modal-overlay {
+    padding: 1.5rem;
+  }
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.popup-container {
+  position: relative;
+  width: 100%;
+  max-height: 90vh;
+  margin: auto;
+  overflow-y: auto;
+  z-index: 10;
+  transform: translateZ(0);
+}
+
 /* =========================================================================
    LIGHT THEME OVERRIDES (Comprehensive, High-Contrast & Accessible)
    ========================================================================= */

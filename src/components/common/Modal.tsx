@@ -45,14 +45,14 @@ export const Modal: React.FC<ModalProps> = ({
   const modalJSX = (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="modal-overlay fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md"
+            className="dialog-backdrop fixed inset-0 bg-slate-950/80 backdrop-blur-md"
             onClick={onClose}
           />
 
@@ -63,7 +63,7 @@ export const Modal: React.FC<ModalProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className={clsx(
-              'relative w-full bg-slate-900 border border-slate-700/80 shadow-2xl rounded-2xl overflow-hidden backdrop-blur-xl z-10 text-slate-100 my-auto max-h-[90vh] flex flex-col',
+              'popup-container relative w-full bg-slate-900 border border-slate-700/80 shadow-2xl rounded-2xl overflow-hidden backdrop-blur-xl z-10 text-slate-100 my-auto max-h-[90vh] flex flex-col',
               maxWClasses[maxWidth]
             )}
             onClick={(e) => e.stopPropagation()}
