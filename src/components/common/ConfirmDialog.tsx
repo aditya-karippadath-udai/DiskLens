@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { AlertTriangle, Trash2, ShieldAlert } from 'lucide-react';
-import { formatBytes } from '../../data/mockData';
+import { formatBytes } from '../../utils/formatters';
 
 interface ConfirmDialogProps {
   isOpen: boolean;

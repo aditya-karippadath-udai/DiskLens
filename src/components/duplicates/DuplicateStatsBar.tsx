@@ -9,7 +9,7 @@ import {
   HardDrive,
   SlidersHorizontal,
 } from 'lucide-react';
-import { formatBytes } from '../../data/mockData';
+import { formatBytes } from '../../utils/formatters';
 
 interface DuplicateStatsBarProps {
   totalGroups: number;

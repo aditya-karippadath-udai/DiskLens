@@ -5,7 +5,7 @@ import { ScanHistoryCard } from '../components/history/ScanHistoryCard';
 import { EmptyState } from '../components/common/EmptyState';
 import { Button } from '../components/common/Button';
 import { History, Sparkles, Trash2, RotateCcw } from 'lucide-react';
-import { formatBytes } from '../data/mockData';
+import { formatBytes } from '../utils/formatters';
 
 export const ScanHistoryPage: React.FC = () => {
   const { scanHistory, clearHistory, deleteHistoryItem, startScan, setTargetType } = useScanStore();

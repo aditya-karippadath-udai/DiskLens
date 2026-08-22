@@ -1,5 +1,4 @@
 import { DuplicateGroup, FileItem } from '../types/file';
-import { initialDuplicateGroups } from '../data/mockData';
 
 export type DuplicateSelectionStrategy =
   | 'keep_oldest'

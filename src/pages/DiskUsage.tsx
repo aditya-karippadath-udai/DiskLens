@@ -13,7 +13,7 @@ import {
   LayoutGrid,
   RefreshCw,
 } from 'lucide-react';
-import { formatBytes } from '../data/mockData';
+import { formatBytes } from '../utils/formatters';
 import { clsx } from 'clsx';
 
 export const DiskUsagePage: React.FC = () => {

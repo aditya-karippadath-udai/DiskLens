@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useScanStore } from '../../store/scanStore';
 import { Button } from '../common/Button';
-import { formatBytes, formatDuration } from '../../data/mockData';
+import { formatBytes, formatDuration } from '../../utils/formatters';
 
 export const ScanProgressBar: React.FC = () => {
   const { scanProgress, pauseScan, resumeScan, cancelScan } = useScanStore();

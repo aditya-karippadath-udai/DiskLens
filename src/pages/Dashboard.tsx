@@ -21,7 +21,7 @@ import {
   Compass,
   BarChart3,
 } from 'lucide-react';
-import { formatBytes } from '../data/mockData';
+import { formatBytes } from '../utils/formatters';
 import { clsx } from 'clsx';
 
 export const DashboardPage: React.FC = () => {

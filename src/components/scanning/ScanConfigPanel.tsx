@@ -19,7 +19,7 @@ import { FileCategory } from '../../types/file';
 import { Button } from '../common/Button';
 import { clsx } from 'clsx';
 import { scanBrowserDirectoryHandle } from '../../services/browserScanner';
-import { formatBytes } from '../../data/mockData';
+import { formatBytes } from '../../utils/formatters';
 
 export const ScanConfigPanel: React.FC = () => {
   const { scanOptions, setScanOptions, setTargetType, startScan, scanProgress, setDuplicateGroups } = useScanStore();

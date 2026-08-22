@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as d3 from 'd3';
 import { DiskNode } from '../../types/disk';
-import { formatBytes } from '../../data/mockData';
+import { formatBytes } from '../../utils/formatters';
 import { useFilesystemStore } from '../../store/filesystemStore';
 import { useAppStore } from '../../store/appStore';
 import {

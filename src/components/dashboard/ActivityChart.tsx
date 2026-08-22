@@ -8,7 +8,7 @@ import {
   Tooltip,
   Cell,
 } from 'recharts';
-import { formatBytes } from '../../data/mockData';
+import { formatBytes } from '../../utils/formatters';
 import { useFilesystemStore } from '../../store/filesystemStore';
 import { DiskNode } from '../../types/disk';
 

@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   FileCode,
 } from 'lucide-react';
-import { formatBytes, formatDate, formatDuration } from '../../data/mockData';
+import { formatBytes, formatDate, formatDuration } from '../../utils/formatters';
 
 interface ScanHistoryCardProps {
   item: ScanHistoryItem;

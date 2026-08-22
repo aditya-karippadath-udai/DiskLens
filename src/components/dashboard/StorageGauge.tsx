@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { formatBytes } from '../../data/mockData';
+import { formatBytes } from '../../utils/formatters';
 
 interface StorageGaugeProps {
   totalBytes: number;

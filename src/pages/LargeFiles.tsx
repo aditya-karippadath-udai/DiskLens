@@ -7,7 +7,7 @@ import { FileDetailsModal } from '../components/files/FileDetailsModal';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { FileItem } from '../types/file';
 import { filesystemService } from '../services/filesystemService';
-import { formatBytes } from '../data/mockData';
+import { formatBytes } from '../utils/formatters';
 
 export const LargeFilesPage: React.FC = () => {
   const { largeFiles, deleteLargeFile, refreshDiskData } = useFilesystemStore();

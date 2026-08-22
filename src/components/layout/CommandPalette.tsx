@@ -17,7 +17,7 @@ import {
 import { useAppStore, AppPage } from '../../store/appStore';
 import { useFilesystemStore } from '../../store/filesystemStore';
 import { useScanStore } from '../../store/scanStore';
-import { formatBytes } from '../../data/mockData';
+import { formatBytes } from '../../utils/formatters';
 
 export const CommandPalette: React.FC = () => {
   const { isCommandPaletteOpen, setCommandPaletteOpen, setCurrentPage, addToast } = useAppStore();

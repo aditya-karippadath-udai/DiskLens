@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { DiskNode } from '../../types/disk';
-import { formatBytes, formatDate } from '../../data/mockData';
+import { formatBytes, formatDate } from '../../utils/formatters';
 import { useAppStore } from '../../store/appStore';
 import {
   Folder,

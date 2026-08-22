@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DiskNode } from '../../types/disk';
-import { formatBytes } from '../../data/mockData';
+import { formatBytes } from '../../utils/formatters';
 import {
   Folder,
   FileText,

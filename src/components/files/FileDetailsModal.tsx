@@ -15,7 +15,7 @@ import {
   Trash2,
   Lock,
 } from 'lucide-react';
-import { formatBytes, formatDate } from '../../data/mockData';
+import { formatBytes, formatDate } from '../../utils/formatters';
 import { filesystemService } from '../../services/filesystemService';
 import { useAppStore } from '../../store/appStore';
 

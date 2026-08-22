@@ -14,7 +14,7 @@ import { filesystemService } from '../services/filesystemService';
 import { duplicateService } from '../services/duplicateService';
 import { Copy, Sparkles, CheckCircle2, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { formatBytes } from '../data/mockData';
+import { formatBytes } from '../utils/formatters';
 
 export const DuplicatesPage: React.FC = () => {
   const {

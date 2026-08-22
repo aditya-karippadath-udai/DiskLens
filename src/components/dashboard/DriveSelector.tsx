@@ -1,7 +1,7 @@
 import React from 'react';
 import { StorageDrive } from '../../types/disk';
 import { HardDrive, Check, Usb, Server } from 'lucide-react';
-import { formatBytes } from '../../data/mockData';
+import { formatBytes } from '../../utils/formatters';
 import { clsx } from 'clsx';
 
 interface DriveSelectorProps {
