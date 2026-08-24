@@ -47,7 +47,7 @@ interface ScanStoreState {
 }
 
 const DEFAULT_SCAN_OPTIONS: ScanOptions = {
-  targetPath: process.cwd ? '/' : '/',
+  targetPath: '/',
   targetType: 'home',
   includeSubfolders: true,
   followSymlinks: false,
