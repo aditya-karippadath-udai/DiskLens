@@ -7,7 +7,9 @@ import { StorageDrive, DiskNode, DiskStats } from '../src/types/disk';
 import { FileItem, FileCategory, DuplicateGroup } from '../src/types/file';
 
 const TRASH_DIR = path.join(os.homedir(), '.local', 'share', 'Trash', 'files');
-const WORKSPACE_DIR = process.cwd();
+
+// Virtual directories on Linux to skip from recursive size scanning
+const VIRTUAL_FS_DIRS = new Set(['proc', 'sys', 'dev', 'run']);
 
 // Ensure trash dir exists
 try {
@@ -130,19 +132,20 @@ export function getRealStorageDrives(): StorageDrive[] {
     });
   }
 
-  // Ensure workspace / home is in list
-  const hasHome = drives.some(d => d.mountPoint.startsWith('/home') || d.mountPoint === WORKSPACE_DIR);
-  if (!hasHome) {
+  // Ensure user home is in list if available
+  const userHome = os.homedir();
+  const hasHome = drives.some(d => d.mountPoint === userHome);
+  if (userHome && userHome !== '/' && !hasHome && fs.existsSync(userHome)) {
     const rootDrive = drives[0];
     drives.push({
-      id: 'drive-workspace',
-      name: 'Project Workspace',
-      mountPoint: WORKSPACE_DIR,
-      devicePath: '/dev/workspace',
+      id: 'drive-home',
+      name: 'Home Directory',
+      mountPoint: userHome,
+      devicePath: '/dev/home',
       filesystem: 'ext4',
-      totalBytes: rootDrive ? Math.round(rootDrive.totalBytes * 0.5) : 256 * 1024 * 1024 * 1024,
-      usedBytes: rootDrive ? Math.round(rootDrive.usedBytes * 0.4) : 98 * 1024 * 1024 * 1024,
-      freeBytes: rootDrive ? Math.round(rootDrive.freeBytes * 0.5) : 158 * 1024 * 1024 * 1024,
+      totalBytes: rootDrive ? rootDrive.totalBytes : 500 * 1024 * 1024 * 1024,
+      usedBytes: rootDrive ? Math.round(rootDrive.usedBytes * 0.6) : 120 * 1024 * 1024 * 1024,
+      freeBytes: rootDrive ? rootDrive.freeBytes : 380 * 1024 * 1024 * 1024,
       type: 'internal',
       isMounted: true,
     });
@@ -151,9 +154,9 @@ export function getRealStorageDrives(): StorageDrive[] {
   return drives;
 }
 
-export function buildDynamicDiskTree(basePath: string = WORKSPACE_DIR, maxDepth: number = 4): DiskNode {
+export function buildDynamicDiskTree(basePath: string = '/', maxDepth: number = 4): DiskNode {
   function scanDir(currentPath: string, currentDepth: number): DiskNode {
-    const name = path.basename(currentPath) || currentPath;
+    const name = currentPath === '/' ? '/' : (path.basename(currentPath) || currentPath);
     let size = 0;
     let filesCount = 0;
     const children: DiskNode[] = [];
@@ -180,7 +183,12 @@ export function buildDynamicDiskTree(basePath: string = WORKSPACE_DIR, maxDepth:
       const entries = fs.readdirSync(currentPath, { withFileTypes: true });
 
       for (const entry of entries) {
-        // Skip huge hidden or cycle directories if at depth limit
+        // Skip virtual or kernel mounts when scanning from root
+        if (currentPath === '/' && VIRTUAL_FS_DIRS.has(entry.name)) {
+          continue;
+        }
+
+        // Skip huge hidden cycle directories if at depth limit
         if (entry.name === '.git' && currentDepth > 1) continue;
         if (entry.name === 'node_modules' && currentDepth > 2) {
           // Summary node for node_modules
@@ -251,7 +259,7 @@ export function buildDynamicDiskTree(basePath: string = WORKSPACE_DIR, maxDepth:
     children.sort((a, b) => b.size - a.size);
 
     return {
-      name: name === WORKSPACE_DIR ? '/' : name,
+      name: currentPath === '/' ? '/' : name,
       path: currentPath,
       size,
       percentage: 100,
@@ -264,7 +272,7 @@ export function buildDynamicDiskTree(basePath: string = WORKSPACE_DIR, maxDepth:
   return scanDir(basePath, 0);
 }
 
-export function scanDynamicLargeFiles(basePath: string = WORKSPACE_DIR, minBytes: number = 1024 * 1024): FileItem[] {
+export function scanDynamicLargeFiles(basePath: string = '/', minBytes: number = 1024 * 1024): FileItem[] {
   const results: FileItem[] = [];
 
   function walk(dir: string, depth: number) {
@@ -273,6 +281,8 @@ export function scanDynamicLargeFiles(basePath: string = WORKSPACE_DIR, minBytes
       const entries = fs.readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.name === '.git') continue;
+        if (dir === '/' && VIRTUAL_FS_DIRS.has(entry.name)) continue;
+
         const fullPath = path.join(dir, entry.name);
 
         if (entry.isDirectory()) {

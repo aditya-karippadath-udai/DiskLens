@@ -48,7 +48,7 @@ export class RealFilesystemScanner {
     const progress: ScanProgressState = {
       status: 'scanning',
       percent: 0,
-      currentFolder: options.targetPath || process.cwd(),
+      currentFolder: options.targetPath || '/',
       currentFile: 'Initializing indexer...',
       filesScanned: 0,
       foldersScanned: 0,
@@ -69,7 +69,7 @@ export class RealFilesystemScanner {
       duplicateGroups: [],
     };
 
-    const targetDir = options.targetPath && fs.existsSync(options.targetPath) ? options.targetPath : process.cwd();
+    const targetDir = options.targetPath && fs.existsSync(options.targetPath) ? options.targetPath : '/';
     const filesBySize: Map<number, string[]> = new Map();
     let totalFiles = 0;
     let totalFolders = 0;
@@ -89,6 +89,7 @@ export class RealFilesystemScanner {
         for (const entry of entries) {
           if (this.activeScan?.isCancelled) return;
 
+          if (dir === '/' && (entry.name === 'proc' || entry.name === 'sys' || entry.name === 'dev' || entry.name === 'run')) continue;
           if (options.ignoreHidden && entry.name.startsWith('.')) continue;
           if (entry.name === '.git') continue;
 

@@ -34,7 +34,7 @@ interface FilesystemState {
 }
 
 const DEFAULT_ROOT_TREE: DiskNode = {
-  name: 'System Workspace',
+  name: '/',
   path: '/',
   size: 0,
   percentage: 100,
@@ -174,14 +174,18 @@ export const useFilesystemStore = create<FilesystemState>((set, get) => ({
   refreshDiskData: async () => {
     set({ isLoading: true });
     try {
+      const { drives: currentDrives, selectedDriveId } = get();
+      const currentSelected = currentDrives.find((d) => d.id === selectedDriveId);
+      const targetMount = currentSelected?.mountPoint || '/';
+
       const [drives, stats, tree, largeFiles] = await Promise.all([
         filesystemService.getStorageDrives(),
         filesystemService.getDiskStats(),
-        filesystemService.getDiskTree(),
+        filesystemService.getDiskTree(targetMount),
         filesystemService.getLargeFiles(1024 * 1024),
       ]);
 
-      const selectedId = drives[0]?.id || 'drive-main';
+      const selectedId = drives.find(d => d.id === selectedDriveId) ? selectedDriveId : (drives[0]?.id || 'drive-main');
 
       set({
         drives,
@@ -189,7 +193,7 @@ export const useFilesystemStore = create<FilesystemState>((set, get) => ({
         diskStats: stats,
         rootTree: tree,
         currentTreemapNode: tree,
-        pathBreadcrumbs: [{ name: '/', path: '/' }],
+        pathBreadcrumbs: [{ name: tree.name || '/', path: tree.path || '/' }],
         largeFiles,
         isLoading: false,
       });

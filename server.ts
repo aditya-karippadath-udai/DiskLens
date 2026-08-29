@@ -43,7 +43,7 @@ async function startServer() {
         freeBytes: 300 * 1024 * 1024 * 1024,
       };
 
-      const largeFiles = scanDynamicLargeFiles(process.cwd(), 10 * 1024 * 1024);
+      const largeFiles = scanDynamicLargeFiles('/', 10 * 1024 * 1024);
       const largeFileBytes = largeFiles.reduce((acc, f) => acc + f.size, 0);
 
       // Check trash folder size
@@ -79,7 +79,7 @@ async function startServer() {
   // 3. Hierarchical Disk Usage Tree
   app.get('/api/system/tree', (req, res) => {
     try {
-      const targetPath = (req.query.path as string) || process.cwd();
+      const targetPath = (req.query.path as string) || '/';
       const maxDepth = parseInt(req.query.depth as string, 10) || 4;
       const tree = buildDynamicDiskTree(targetPath, maxDepth);
       res.json({ success: true, tree });
@@ -92,7 +92,7 @@ async function startServer() {
   app.get('/api/system/large-files', (req, res) => {
     try {
       const minBytes = parseInt(req.query.minBytes as string, 10) || 1024 * 1024;
-      const targetPath = (req.query.path as string) || process.cwd();
+      const targetPath = (req.query.path as string) || '/';
       const files = scanDynamicLargeFiles(targetPath, minBytes);
       res.json({ success: true, files });
     } catch (err: any) {
@@ -137,7 +137,7 @@ async function startServer() {
   app.post('/api/scan/start', async (req, res) => {
     try {
       const options = req.body || {};
-      options.targetPath = options.targetPath || process.cwd();
+      options.targetPath = options.targetPath || '/';
 
       // Trigger async scan
       realScanner.startScan(options).catch(console.error);

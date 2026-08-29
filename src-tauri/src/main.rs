@@ -233,6 +233,10 @@ fn build_node(path: &Path, depth: usize, max_depth: usize) -> DiskNode {
     if let Ok(entries) = fs::read_dir(path) {
         for entry in entries.flatten() {
             let p = entry.path();
+            let fname = p.file_name().unwrap_or_default().to_string_lossy().to_string();
+            if path_str == "/" && (fname == "proc" || fname == "sys" || fname == "dev" || fname == "run") {
+                continue;
+            }
             let child = build_node(&p, depth + 1, max_depth);
             total_size += child.size;
             files_count += child.filesCount.unwrap_or(1);
@@ -248,7 +252,7 @@ fn build_node(path: &Path, depth: usize, max_depth: usize) -> DiskNode {
     }
 
     DiskNode {
-        name: if name.is_empty() { "/".into() } else { name },
+        name: if path_str == "/" || name.is_empty() { "/".into() } else { name },
         path: path_str,
         size: total_size,
         percentage: 100.0,
@@ -262,7 +266,7 @@ fn build_node(path: &Path, depth: usize, max_depth: usize) -> DiskNode {
 
 #[tauri::command]
 fn get_disk_tree(target_path: Option<String>, depth: Option<usize>) -> Result<DiskNode, String> {
-    let path_str = target_path.unwrap_or_else(|| ".".into());
+    let path_str = target_path.unwrap_or_else(|| "/".into());
     let max_depth = depth.unwrap_or(4);
     let path = Path::new(&path_str);
     Ok(build_node(path, 0, max_depth))
@@ -270,7 +274,7 @@ fn get_disk_tree(target_path: Option<String>, depth: Option<usize>) -> Result<Di
 
 #[tauri::command]
 fn scan_large_files(target_path: Option<String>, min_bytes: Option<u64>) -> Result<Vec<FileItem>, String> {
-    let start_dir = target_path.unwrap_or_else(|| ".".into());
+    let start_dir = target_path.unwrap_or_else(|| "/".into());
     let min_size = min_bytes.unwrap_or(1024 * 1024);
     let mut results = Vec::new();
 
