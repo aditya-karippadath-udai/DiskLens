@@ -78,6 +78,13 @@ export const Sidebar: React.FC = () => {
                 src={appLogo}
                 alt="DiskLens Logo"
                 className="w-full h-full object-contain rounded-lg"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src !== window.location.origin + '/Icon.png') {
+                    target.src = '/Icon.png';
+                  }
+                }}
               />
             </div>
             {!isSidebarCollapsed && (
